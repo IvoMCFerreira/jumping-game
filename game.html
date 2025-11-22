@@ -1,1512 +1,1031 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Infinite Jumper - Dash Edition</title>
-        <style>
-            body {
-                margin: 0;
-                overflow: hidden;
-                background-color: #000;
-                font-family: "Courier New", Courier, monospace;
-                user-select: none;
-            }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Jumper - Persistent World</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
 
-            #ui-layer {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-            #score-container {
-                margin-top: 20px;
-                color: white;
-                font-size: 32px;
-                font-weight: bold;
-                text-shadow: 2px 2px 0 #000;
-                z-index: 10;
-                text-align: center;
-            }
+        #score-container {
+            margin-top: 20px;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+        }
 
-            /* Dash UI */
-            #dash-container {
-                margin-top: 5px;
-                width: 200px;
-                height: 10px;
-                background: rgba(255, 255, 255, 0.2);
-                border: 2px solid white;
-                position: relative;
-            }
+        #speed-indicator {
+            margin-top: 10px;
+            color: #ff4444; 
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 0 #000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
 
-            #dash-bar {
-                width: 100%;
-                height: 100%;
-                background: #00ffff;
-                box-shadow: 0 0 10px #00ffff;
-                transition: width 0.1s linear;
-            }
+        #milestone-indicator {
+            position: absolute;
+            top: 25%;
+            color: #ffd700;
+            font-size: 60px;
+            font-weight: 900;
+            text-transform: uppercase;
+            text-shadow: 4px 4px 0 #b8860b;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 15;
+        }
 
-            #dash-text {
-                font-size: 12px;
-                color: #00ffff;
-                margin-top: 2px;
-                font-weight: bold;
-                text-shadow: 1px 1px 0 #000;
-            }
+        .milestone-active {
+            opacity: 1 !important;
+            transform: scale(1.2) !important;
+        }
 
-            #speed-indicator {
-                margin-top: 10px;
-                color: #ff4444;
-                font-size: 28px;
-                font-weight: bold;
-                text-transform: uppercase;
-                text-shadow: 2px 2px 0 #000;
-                opacity: 0;
-                transition: opacity 0.3s;
-            }
+        .screen-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px 60px;
+            border: 4px solid white;
+            color: white;
+            pointer-events: auto;
+            display: none;
+            min-width: 450px;
+            box-shadow: 0 0 30px rgba(255,255,255,0.15);
+            z-index: 20;
+        }
 
-            #milestone-indicator {
-                position: absolute;
-                top: 25%;
-                color: #ffd700;
-                font-size: 60px;
-                font-weight: 900;
-                text-transform: uppercase;
-                text-shadow: 4px 4px 0 #b8860b;
-                opacity: 0;
-                transform: scale(0.5);
-                transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                z-index: 15;
-            }
+        h1 {
+            color: #44aaff;
+            margin: 0 0 20px 0;
+            font-size: 42px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #0044ff;
+            letter-spacing: 2px;
+        }
 
-            .milestone-active {
-                opacity: 1 !important;
-                transform: scale(1.2) !important;
-            }
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #ccc;
+        }
 
-            .screen-overlay {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                text-align: center;
-                background: rgba(0, 0, 0, 0.9);
-                padding: 40px 60px;
-                border: 4px solid white;
-                color: white;
-                pointer-events: auto;
-                display: none;
-                min-width: 450px;
-                box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
-                z-index: 20;
-            }
+        .warning {
+            color: #ffeb3b;
+            font-size: 15px;
+            margin-top: 15px;
+            font-style: italic;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
 
-            h1 {
-                color: #aaaaff;
-                margin: 0 0 20px 0;
-                font-size: 42px;
-                text-transform: uppercase;
-                text-shadow: 0 0 10px #0044ff;
-                letter-spacing: 2px;
-            }
+        .blink {
+            animation: blinker 1s linear infinite;
+            color: #44ff44;
+            font-weight: bold;
+            font-size: 24px;
+            margin-top: 30px;
+            display: block;
+            border: 2px solid #44ff44;
+            padding: 10px;
+            background: rgba(0,255,0,0.1);
+        }
 
-            p {
-                font-size: 18px;
-                line-height: 1.6;
-                color: #ccc;
-            }
+        @keyframes blinker {
+            50% { opacity: 0.5; }
+        }
 
-            .warning {
-                color: #ffeb3b;
-                font-size: 15px;
-                margin-top: 15px;
-                font-style: italic;
-                border-top: 1px solid #333;
-                padding-top: 10px;
-            }
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            color: #fff;
+            text-shadow: 1px 1px 2px black;
+            font-size: 14px;
+        }
 
-            .blink {
-                animation: blinker 1s linear infinite;
-                color: #44ff44;
-                font-weight: bold;
-                font-size: 24px;
-                margin-top: 30px;
-                display: block;
-                border: 2px solid #44ff44;
-                padding: 10px;
-                background: rgba(0, 255, 0, 0.1);
-            }
+        .menu-btn {
+            background: #111;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px 0;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .menu-btn:hover { background: #fff; color: #000; }
+        #btn-resume { border-color: #44ff44; color: #44ff44; }
+        #btn-resume:hover { background: #44ff44; color: #000; }
+        
+    </style>
+</head>
+<body>
 
-            @keyframes blinker {
-                50% {
-                    opacity: 0.5;
-                }
-            }
-
-            #controls-hint {
-                position: absolute;
-                bottom: 20px;
-                color: #fff;
-                text-shadow: 1px 1px 2px black;
-                font-size: 14px;
-            }
-
-            /* Menu Buttons */
-            .menu-btn {
-                background: #111;
-                color: #fff;
-                border: 2px solid #fff;
-                padding: 12px 24px;
-                font-family: inherit;
-                font-size: 18px;
-                font-weight: bold;
-                cursor: pointer;
-                margin: 8px 0;
-                width: 100%;
-                transition: all 0.2s;
-            }
-            .menu-btn:hover {
-                background: #fff;
-                color: #000;
-            }
-            #btn-resume {
-                border-color: #44ff44;
-                color: #44ff44;
-            }
-            #btn-resume:hover {
-                background: #44ff44;
-                color: #000;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="ui-layer">
-            <div id="score-container">
-                JUMPS: <span id="score">0</span>
-                <div id="dash-container">
-                    <div id="dash-bar"></div>
-                </div>
-                <div id="dash-text">DASH READY (SHIFT)</div>
-            </div>
-
-            <div id="speed-indicator">SPEED UP!</div>
-            <div id="milestone-indicator">CHECKPOINT!</div>
-
-            <div
-                id="start-screen"
-                class="screen-overlay"
-                style="display: block"
-            >
-                <h1>INFINITE JUMPER</h1>
-                <p>FPS Mode. Night Mode.<br />Use SHIFT to Dash.</p>
-                <p class="warning">Speed increases 50% every 25 jumps.</p>
-                <span class="blink">PRESS SPACE TO START</span>
-            </div>
-
-            <div id="pause-menu" class="screen-overlay">
-                <h1 style="color: white">PAUSED</h1>
-                <button id="btn-resume" class="menu-btn">RESUME GAME</button>
-                <button id="btn-toggle-mode" class="menu-btn">
-                    MODE: CHECKPOINTS
-                </button>
-                <button id="btn-toggle-view" class="menu-btn">
-                    VIEW: FIRST PERSON
-                </button>
-                <button id="btn-toggle-cycle" class="menu-btn">
-                    CYCLE: DAY/NIGHT
-                </button>
-                <button id="btn-toggle-world" class="menu-btn">
-                    WORLD: PLANET
-                </button>
-                <button id="btn-restart" class="menu-btn">
-                    RESTART (RESET SCORE)
-                </button>
-            </div>
-
-            <div id="game-over-screen" class="screen-overlay">
-                <h1>GAME OVER</h1>
-                <p>Score: <span id="final-score">0</span></p>
-                <p style="color: #ffd700; margin-top: 10px">
-                    Checkpoint: <span id="checkpoint-score">0</span>
-                </p>
-                <span class="blink">PRESS SPACE TO RETRY</span>
-            </div>
-
-            <div id="controls-hint">
-                ARROWS to Steer | SHIFT to Dash | ESC to Menu
-            </div>
+    <div id="ui-layer">
+        <div id="score-container">JUMPS: <span id="score">0</span></div>
+        <div id="speed-indicator">SPEED UP! (+10%)</div>
+        <div id="milestone-indicator">100 JUMPS!</div>
+        
+        <div id="start-screen" class="screen-overlay" style="display: block;">
+            <h1>INFINITE JUMPER</h1>
+            <p>Persistent Time Cycle.<br>Clouds Above. World Below.</p>
+            <p class="warning">Press 'V' to Toggle View.<br>Press 'ESC' to change World.</p>
+            <span class="blink">PRESS SPACE TO START</span>
         </div>
 
-        <script type="importmap">
-            {
-                "imports": {
-                    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-                }
+        <div id="pause-menu" class="screen-overlay">
+            <h1 style="color:white;">PAUSED</h1>
+            <button id="btn-resume" class="menu-btn">RESUME GAME</button>
+            <button id="btn-toggle-view" class="menu-btn">VIEW: FIRST PERSON</button>
+            <button id="btn-toggle-cycle" class="menu-btn">CYCLE: DAY/NIGHT</button>
+            <button id="btn-toggle-world" class="menu-btn">WORLD: PLANET</button>
+            <button id="btn-restart" class="menu-btn">RESTART GAME</button>
+        </div>
+
+        <div id="game-over-screen" class="screen-overlay">
+            <h1>GAME OVER</h1>
+            <p>Score: <span id="final-score">0</span></p>
+            <span class="blink">PRESS SPACE TO RESTART</span>
+        </div>
+
+        <div id="controls-hint">ARROWS to Steer | 'V' to View | ESC to Menu</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
             }
-        </script>
+        }
+    </script>
 
-        <script type="module">
-            import * as THREE from "three";
+    <script type="module">
+        import * as THREE from 'three';
 
-            // --- Configuration ---
-            const PLATFORM_WIDTH = 3;
-            const PLATFORM_DEPTH = 3;
-            const PLATFORM_HEIGHT = 1;
-            const PLAYER_SIZE = 0.8;
+        // --- Configuration ---
+        const PLATFORM_WIDTH = 3;
+        const PLATFORM_DEPTH = 3;
+        const PLATFORM_HEIGHT = 1;
+        const PLAYER_SIZE = 0.8;
+        
+        const GRAVITY = 0.013; 
+        const JUMP_FORCE = 0.34; 
+        const START_TOTAL_SPEED = 0.28; 
+        const STEERING_POWER = 0.24; 
+        const SPEED_INCREMENT_INTERVAL = 25; 
+        const SPEED_MULTIPLIER = 1.10; 
 
-            // PHYSICS
-            const GRAVITY = 0.013;
-            const BASE_JUMP_FORCE = 0.34;
+        // --- Global Variables ---
+        let scene, camera, renderer;
+        let player;
+        let platforms = [];
+        
+        // Environment
+        let planetGroup, earth, earthAtmosphere; 
+        let jungleGroup; 
+        let stars; 
+        let floatingClouds = []; // The 3D block clouds above
+        let shootingStars = [];
+        let ambientLight, dirLight;
+        
+        let score = 0;
+        let animationId;
+        let gameState = 'START'; 
 
-            const START_TOTAL_SPEED = 0.28;
-            const STEERING_POWER = 0.24;
+        // --- Settings ---
+        let savedMode = localStorage.getItem('infiniteJumper_cameraMode');
+        let cameraMode = savedMode ? savedMode : 'FPS'; 
 
-            // SPEED LOGIC
-            const SPEED_INCREMENT_INTERVAL = 25;
-            const SPEED_MULTIPLIER = 1.5;
+        let savedNight = localStorage.getItem('infiniteJumper_nightMode');
+        // Default to Day/Night (false)
+        let isPermanentNight = (savedNight === 'true'); 
 
-            // DASH LOGIC
-            const DASH_COOLDOWN = 3000; // ms
-            const DASH_DURATION = 10; // frames
-            const DASH_SPEED_BOOST = 0.5; // Added to forward speed
+        let savedWorld = localStorage.getItem('infiniteJumper_worldMode');
+        let worldMode = savedWorld ? savedWorld : 'PLANET'; 
 
-            // --- Global Variables ---
-            let scene, camera, renderer;
-            let player;
-            let platforms = [];
+        // --- Gameplay ---
+        let currentTotalSpeed = START_TOTAL_SPEED;
+        let playerVelocityY = 0;
+        let moveLeft = false;
+        let moveRight = false;
+        
+        // Global Time for Cycle (Never Resets)
+        let globalTime = 0; 
 
-            // Environment Groups
-            let planetGroup, earth, earthAtmosphere;
-            let jungleGroup;
-            let stars;
-            let floatingClouds = [];
-            let shootingStars = [];
-            let trails = []; // For Dash Trail
-            let ambientLight, dirLight;
+        let lastRowZ = 0;
+        let lastRowX = 0; 
+        let generatedRowsCount = 0;
 
-            let score = 0;
-            let lastCheckpoint = 0;
-            let animationId;
-            let gameState = "START";
+        // Jungle Data
+        let instancedTrunks, instancedLeaves;
+        let treeData = [];
+        const TREE_COUNT = 2000;
+        const JUNGLE_RENDER_DIST = 400;
 
-            // --- Settings ---
-            let savedMode = localStorage.getItem("infiniteJumper_cameraMode");
-            let cameraMode = savedMode ? savedMode : "FPS";
+        const COLORS = {
+            morning: new THREE.Color(0x87CEEB),
+            noon: new THREE.Color(0x1E90FF),
+            sunset: new THREE.Color(0xFF7F50),
+            night: new THREE.Color(0x050510), 
+            void: new THREE.Color(0x000000)   
+        };
 
-            let savedNight = localStorage.getItem("infiniteJumper_nightMode");
-            let isPermanentNight =
-                savedNight === null ? false : savedNight === "true";
+        // --- Texture Generation ---
+        function createPixelTexture(mainColorHex, noiseColorHex, topColorHex) {
+            const size = 64;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
 
-            let savedWorld = localStorage.getItem("infiniteJumper_worldMode");
-            let worldMode = savedWorld ? savedWorld : "PLANET";
-
-            let savedCheckpointMode = localStorage.getItem(
-                "infiniteJumper_checkpointMode"
-            );
-            let isCheckpointMode =
-                savedCheckpointMode === null
-                    ? true
-                    : savedCheckpointMode === "true";
-
-            // --- Gameplay ---
-            let currentTotalSpeed = START_TOTAL_SPEED;
-            let currentJumpForce = BASE_JUMP_FORCE;
-
-            let playerVelocityY = 0;
-            let moveLeft = false;
-            let moveRight = false;
-
-            // Dash State
-            let lastDashTime = 0;
-            let dashFrames = 0;
-
-            let globalTime = 0;
-            let lastRowZ = 0;
-            let lastRowX = 0;
-            let generatedRowsCount = 0;
-
-            // Jungle Data
-            let instancedTrunks, instancedLeaves;
-            let treeData = [];
-            const TREE_COUNT = 2000;
-            const JUNGLE_RENDER_DIST = 400;
-
-            const COLORS = {
-                morning: new THREE.Color(0x87ceeb),
-                noon: new THREE.Color(0x1e90ff),
-                sunset: new THREE.Color(0xff7f50),
-                night: new THREE.Color(0x050510),
-                void: new THREE.Color(0x000000),
-            };
-
-            // --- Texture Generation ---
-            function createPixelTexture(
-                mainColorHex,
-                noiseColorHex,
-                topColorHex
-            ) {
-                const size = 64;
-                const canvas = document.createElement("canvas");
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext("2d");
-
-                ctx.fillStyle = mainColorHex;
-                ctx.fillRect(0, 0, size, size);
-                for (let i = 0; i < 100; i++) {
-                    ctx.fillStyle =
-                        Math.random() > 0.5 ? noiseColorHex : mainColorHex;
-                    ctx.fillRect(
-                        Math.floor(Math.random() * 16) * 4,
-                        Math.floor(Math.random() * 16) * 4,
-                        4,
-                        4
-                    );
-                }
-                ctx.fillStyle = topColorHex;
-                ctx.fillRect(0, 0, size, 12);
-                for (let i = 0; i < size; i += 4) {
-                    if (Math.random() > 0.6) ctx.fillRect(i, 12, 4, 4);
-                }
-
-                const canvasTop = document.createElement("canvas");
-                canvasTop.width = size;
-                canvasTop.height = size;
-                const ctxTop = canvasTop.getContext("2d");
-                ctxTop.fillStyle = topColorHex;
-                ctxTop.fillRect(0, 0, size, size);
-                for (let i = 0; i < 120; i++) {
-                    ctxTop.fillStyle =
-                        Math.random() > 0.5 ? "#ffffff33" : "#00000033";
-                    ctxTop.fillRect(
-                        Math.floor(Math.random() * 16) * 4,
-                        Math.floor(Math.random() * 16) * 4,
-                        4,
-                        4
-                    );
-                }
-
-                const textureSide = new THREE.CanvasTexture(canvas);
-                textureSide.magFilter = THREE.NearestFilter;
-                const textureTop = new THREE.CanvasTexture(canvasTop);
-                textureTop.magFilter = THREE.NearestFilter;
-
-                const matSide = new THREE.MeshStandardMaterial({
-                    map: textureSide,
-                });
-                const matTop = new THREE.MeshStandardMaterial({
-                    map: textureTop,
-                });
-                const matBottom = new THREE.MeshStandardMaterial({
-                    color: 0x111111,
-                });
-
-                return [matSide, matSide, matTop, matBottom, matSide, matSide];
+            ctx.fillStyle = mainColorHex;
+            ctx.fillRect(0, 0, size, size);
+            for(let i=0; i<100; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? noiseColorHex : mainColorHex;
+                ctx.fillRect(Math.floor(Math.random()*16)*4, Math.floor(Math.random()*16)*4, 4, 4);
+            }
+            ctx.fillStyle = topColorHex; 
+            ctx.fillRect(0, 0, size, 12); 
+            for(let i=0; i<size; i+=4) {
+                if(Math.random()>0.6) ctx.fillRect(i, 12, 4, 4);
             }
 
-            function createLivingPlanetTexture() {
-                const size = 512;
-                const canvas = document.createElement("canvas");
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext("2d");
-                ctx.fillStyle = "#1a237e";
-                ctx.fillRect(0, 0, size, size);
-                const pixelSize = 4;
-                for (let y = 0; y < size; y += pixelSize) {
-                    for (let x = 0; x < size; x += pixelSize) {
-                        const scale1 = 0.02;
-                        const scale2 = 0.05;
-                        const val =
-                            Math.sin(x * scale1) +
-                            Math.cos(y * scale1) +
-                            Math.sin(x * scale2 + y * scale2) * 0.5;
-                        let color = null;
-                        if (val < -0.5) {
-                            if (Math.random() > 0.98) color = "#283593";
-                        } else if (val < 0.0) {
-                            color = "#4fc3f7";
-                        } else if (val < 0.25) {
-                            color = "#ffe0b2";
-                        } else if (val < 1.0) {
-                            color = "#2e7d32";
-                            if (Math.random() > 0.9) color = "#388e3c";
-                        } else if (val < 1.6) {
-                            color = "#1b5e20";
-                        } else {
-                            color = "#5d4037";
-                            if (val > 1.9) color = "#eeeeee";
-                        }
-                        if (color) {
-                            ctx.fillStyle = color;
-                            ctx.fillRect(x, y, pixelSize, pixelSize);
-                        }
+            const canvasTop = document.createElement('canvas');
+            canvasTop.width = size;
+            canvasTop.height = size;
+            const ctxTop = canvasTop.getContext('2d');
+            ctxTop.fillStyle = topColorHex;
+            ctxTop.fillRect(0, 0, size, size);
+            for(let i=0; i<120; i++) {
+                ctxTop.fillStyle = Math.random() > 0.5 ? '#ffffff33' : '#00000033'; 
+                ctxTop.fillRect(Math.floor(Math.random()*16)*4, Math.floor(Math.random()*16)*4, 4, 4);
+            }
+
+            const textureSide = new THREE.CanvasTexture(canvas);
+            textureSide.magFilter = THREE.NearestFilter; 
+            const textureTop = new THREE.CanvasTexture(canvasTop);
+            textureTop.magFilter = THREE.NearestFilter;
+
+            const matSide = new THREE.MeshStandardMaterial({ map: textureSide });
+            const matTop = new THREE.MeshStandardMaterial({ map: textureTop });
+            const matBottom = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+            return [matSide, matSide, matTop, matBottom, matSide, matSide];
+        }
+
+        // --- Planet Texture ---
+        function createLivingPlanetTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#1a237e'; 
+            ctx.fillRect(0, 0, size, size);
+
+            const pixelSize = 4; 
+            for (let y = 0; y < size; y += pixelSize) {
+                for (let x = 0; x < size; x += pixelSize) {
+                    const scale1 = 0.02; 
+                    const scale2 = 0.05;
+                    const val = Math.sin(x * scale1) + Math.cos(y * scale1) 
+                              + (Math.sin(x * scale2 + y * scale2) * 0.5);
+
+                    let color = null;
+                    if (val < -0.5) { if(Math.random() > 0.98) color = '#283593'; } 
+                    else if (val < 0.0) { color = '#4fc3f7'; } 
+                    else if (val < 0.25) { color = '#ffe0b2'; } 
+                    else if (val < 1.0) { color = '#2e7d32'; if(Math.random() > 0.9) color = '#388e3c'; } 
+                    else if (val < 1.6) { color = '#1b5e20'; } 
+                    else { color = '#5d4037'; if (val > 1.9) color = '#eeeeee'; }
+
+                    if (color) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x, y, pixelSize, pixelSize);
                     }
                 }
-                const tex = new THREE.CanvasTexture(canvas);
-                tex.magFilter = THREE.NearestFilter;
-                tex.wrapS = THREE.RepeatWrapping;
-                tex.wrapT = THREE.RepeatWrapping;
-                return tex;
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        // --- Materials ---
+        const platformMaterials = createPixelTexture('#3e2723', '#4e342e', '#388e3c'); 
+        const playerMaterials = createPixelTexture('#008b8b', '#00ced1', '#00ffff'); 
+        
+        const earthMaterial = new THREE.MeshStandardMaterial({ 
+            map: createLivingPlanetTexture(), 
+            roughness: 0.8, 
+            metalness: 0.0 
+        });
+
+        const floatingCloudMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        const shootingStarMaterial = new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.morning);
+            scene.fog = new THREE.Fog(COLORS.morning, 60, 450);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 100, 50);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -60;
+            dirLight.shadow.camera.right = 60;
+            dirLight.shadow.camera.top = 60;
+            dirLight.shadow.camera.bottom = -60;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Player
+            const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
+            const materialsClone = playerMaterials.map(m => m.clone());
+            materialsClone.forEach(m => {
+                m.transparent = true;
+                m.opacity = (cameraMode === 'FPS') ? 0.0 : 1.0;
+                m.emissive = new THREE.Color(0x004444);
+                m.emissiveIntensity = 0.2;
+            });
+            player = new THREE.Mesh(playerGeometry, materialsClone);
+            player.castShadow = true;
+            scene.add(player);
+
+            // --- INIT WORLD OBJECTS ---
+            createStars();
+            setupPlanet();
+            setupJungle();
+            createFloatingClouds();
+
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Menu Listeners
+            document.getElementById('btn-resume').addEventListener('click', togglePause);
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                togglePause(); 
+                startGame(); 
+            });
+            document.getElementById('btn-toggle-view').addEventListener('click', switchCameraMode);
+            document.getElementById('btn-toggle-cycle').addEventListener('click', switchDayNightMode);
+            document.getElementById('btn-toggle-world').addEventListener('click', switchWorldMode);
+            
+            updateMenuText();
+            
+            // Run initial environment update to set default look
+            updateEnvironment(); 
+            
+            resetGameLogic();
+            animate();
+        }
+
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const count = 15000; 
+            const positions = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+            
+            for(let i=0; i<count; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000; 
+                const z = (Math.random() - 0.5) * 2000;
+                positions[i*3] = x;
+                positions[i*3+1] = y;
+                positions[i*3+2] = z;
+                sizes[i] = Math.random() * 1.8;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff, 
+                size: 1.0, 
+                sizeAttenuation: true, 
+                transparent: true, 
+                opacity: 1.0
+            });
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        }
+
+        function setupPlanet() {
+            planetGroup = new THREE.Group();
+            const radius = 1600;
+            const earthGeo = new THREE.SphereGeometry(radius, 128, 128);
+            earth = new THREE.Mesh(earthGeo, earthMaterial);
+            earth.receiveShadow = false;
+            earth.rotation.z = Math.PI / 2; 
+            planetGroup.add(earth);
+
+            // Just the earth surface, clouds are handled by floating meshes now
+            planetGroup.position.y = -radius - 60;
+            scene.add(planetGroup);
+        }
+
+        function setupJungle() {
+            jungleGroup = new THREE.Group();
+            
+            const trunkGeo = new THREE.BoxGeometry(2, 60, 2); 
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
+            instancedTrunks = new THREE.InstancedMesh(trunkGeo, trunkMat, TREE_COUNT);
+            instancedTrunks.frustumCulled = false;
+
+            const leaveGeo = new THREE.BoxGeometry(8, 6, 8); 
+            const leaveMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
+            instancedLeaves = new THREE.InstancedMesh(leaveGeo, leaveMat, TREE_COUNT);
+            instancedLeaves.frustumCulled = false;
+
+            const dummy = new THREE.Object3D();
+            treeData = [];
+
+            for(let i=0; i<TREE_COUNT; i++) {
+                let x = (Math.random() * 100) + 20;
+                if (Math.random() > 0.5) x = -x;
+                let z = -(Math.random() * JUNGLE_RENDER_DIST);
+                let y = -40 + (Math.random() * 20); 
+
+                treeData.push({x, y, z, scaleH: 1 + Math.random() * 0.5});
+                
+                dummy.position.set(x, y, z);
+                dummy.scale.set(1, treeData[i].scaleH, 1);
+                dummy.updateMatrix();
+                instancedTrunks.setMatrixAt(i, dummy.matrix);
+
+                dummy.position.set(x, y + (30 * treeData[i].scaleH), z);
+                dummy.scale.set(1,1,1);
+                dummy.updateMatrix();
+                instancedLeaves.setMatrixAt(i, dummy.matrix);
             }
 
-            function createAtmosphereTexture() {
-                const size = 512;
-                const canvas = document.createElement("canvas");
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext("2d");
-                ctx.clearRect(0, 0, size, size);
-                for (let i = 0; i < 60; i++) {
-                    const cx = Math.random() * size;
-                    const cy = Math.random() * size;
-                    const w = 30 + Math.random() * 60;
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(cx, cy, w, 20);
-                    ctx.fillRect(cx + 10, cy - 10, w - 20, 40);
+            jungleGroup.add(instancedTrunks);
+            jungleGroup.add(instancedLeaves);
+            scene.add(jungleGroup);
+        }
+
+        function createFloatingClouds() {
+            // Generate floating blocks as clouds
+            for(let i=0; i<40; i++) {
+                const w = 10 + Math.random() * 20;
+                const geo = new THREE.BoxGeometry(w, 3, 8);
+                const mesh = new THREE.Mesh(geo, floatingCloudMaterial);
+                
+                mesh.position.set(
+                    (Math.random() - 0.5) * 400,
+                    30 + Math.random() * 40, // High above player
+                    (Math.random() * -400) + 100 
+                );
+                
+                scene.add(mesh);
+                floatingClouds.push(mesh);
+            }
+        }
+
+        function updateFloatingClouds() {
+            // Move clouds slowly
+            // Loop them so they are always present
+            if (isPermanentNight && worldMode === 'VOID') {
+                // Hide clouds in Void Night
+                floatingClouds.forEach(c => c.visible = false);
+                return;
+            }
+
+            floatingClouds.forEach(c => {
+                c.visible = true;
+                c.position.x += 0.03; // Drift
+                c.position.z += 0.05; // Slow forward drift (parallax vs player speed)
+
+                // Loop X
+                if(c.position.x > 250) c.position.x = -250;
+
+                // Loop Z relative to player
+                // If cloud gets too far behind, put it far ahead
+                if (c.position.z > player.position.z + 100) {
+                    c.position.z = player.position.z - 400 - (Math.random() * 100);
+                    c.position.x = (Math.random() - 0.5) * 400;
+                    c.position.y = 30 + Math.random() * 40;
                 }
-                const tex = new THREE.CanvasTexture(canvas);
-                tex.magFilter = THREE.NearestFilter;
-                tex.wrapS = THREE.RepeatWrapping;
-                tex.wrapT = THREE.RepeatWrapping;
-                return tex;
+            });
+        }
+
+        function respawnJungleAroundPlayer() {
+            const dummy = new THREE.Object3D();
+            
+            for(let i=0; i<TREE_COUNT; i++) {
+                let x = (Math.random() * 100) + 20;
+                if (Math.random() > 0.5) x = -x;
+                
+                let z = player.position.z - (Math.random() * JUNGLE_RENDER_DIST);
+                let y = -40 + (Math.random() * 20); 
+
+                treeData[i].x = x;
+                treeData[i].y = y;
+                treeData[i].z = z;
+
+                dummy.position.set(x, y, z);
+                dummy.scale.set(1, treeData[i].scaleH, 1);
+                dummy.updateMatrix();
+                instancedTrunks.setMatrixAt(i, dummy.matrix);
+
+                dummy.position.set(x, y + (30 * treeData[i].scaleH), z);
+                dummy.scale.set(1, 1, 1);
+                dummy.updateMatrix();
+                instancedLeaves.setMatrixAt(i, dummy.matrix);
             }
+            
+            instancedTrunks.instanceMatrix.needsUpdate = true;
+            instancedLeaves.instanceMatrix.needsUpdate = true;
+        }
 
-            // --- Materials ---
-            const platformMaterials = createPixelTexture(
-                "#3e2723",
-                "#4e342e",
-                "#388e3c"
-            );
-            const stoneMaterials = createPixelTexture(
-                "#555555",
-                "#444444",
-                "#777777"
-            );
-            const playerMaterials = createPixelTexture(
-                "#008b8b",
-                "#00ced1",
-                "#00ffff"
-            );
+        function updateJungleLogic() {
+            const dummy = new THREE.Object3D();
+            let needsUpdate = false;
 
-            const earthMaterial = new THREE.MeshStandardMaterial({
-                map: createLivingPlanetTexture(),
-                roughness: 0.8,
-                metalness: 0.0,
-            });
-            const atmosphereMaterial = new THREE.MeshBasicMaterial({
-                map: createAtmosphereTexture(),
-                transparent: true,
-                opacity: 0.6,
-            });
-
-            const cuteCloudMaterial = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                roughness: 0.8,
-                emissive: 0x333333,
-                emissiveIntensity: 0.2,
-            });
-
-            const shootingStarMaterial = new THREE.LineBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8,
-            });
-            const portalGlowMaterial = new THREE.MeshBasicMaterial({
-                color: 0x00ffff,
-                transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide,
-            });
-
-            // Dash Trail Material
-            const trailMaterial = new THREE.MeshBasicMaterial({
-                color: 0x00ffff,
-                transparent: true,
-                opacity: 0.4,
-            });
-
-            function init() {
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(COLORS.morning);
-                scene.fog = new THREE.Fog(COLORS.morning, 60, 450);
-
-                camera = new THREE.PerspectiveCamera(
-                    75,
-                    window.innerWidth / window.innerHeight,
-                    0.1,
-                    5000
-                );
-
-                renderer = new THREE.WebGLRenderer({ antialias: false });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.shadowMap.enabled = true;
-                document.body.appendChild(renderer.domElement);
-
-                // Lights
-                ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-                scene.add(ambientLight);
-
-                dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                dirLight.position.set(50, 100, 50);
-                dirLight.castShadow = true;
-                dirLight.shadow.camera.left = -60;
-                dirLight.shadow.camera.right = 60;
-                dirLight.shadow.camera.top = 60;
-                dirLight.shadow.camera.bottom = -60;
-                dirLight.shadow.mapSize.width = 2048;
-                dirLight.shadow.mapSize.height = 2048;
-                scene.add(dirLight);
-
-                const playerGeometry = new THREE.BoxGeometry(
-                    PLAYER_SIZE,
-                    PLAYER_SIZE,
-                    PLAYER_SIZE
-                );
-                const materialsClone = playerMaterials.map((m) => m.clone());
-                materialsClone.forEach((m) => {
-                    m.transparent = true;
-                    m.opacity = cameraMode === "FPS" ? 0.0 : 1.0;
-                    m.emissive = new THREE.Color(0x004444);
-                    m.emissiveIntensity = 0.2;
-                });
-                player = new THREE.Mesh(playerGeometry, materialsClone);
-                player.castShadow = true;
-                scene.add(player);
-
-                createStars();
-                setupPlanet();
-                setupJungle();
-                createCuteClouds();
-
-                window.addEventListener("resize", onWindowResize);
-                document.addEventListener("keydown", onKeyDown);
-                document.addEventListener("keyup", onKeyUp);
-
-                document
-                    .getElementById("btn-resume")
-                    .addEventListener("click", togglePause);
-                document
-                    .getElementById("btn-restart")
-                    .addEventListener("click", () => {
-                        lastCheckpoint = 0;
-                        togglePause();
-                        startGame();
-                    });
-                document
-                    .getElementById("btn-toggle-view")
-                    .addEventListener("click", switchCameraMode);
-                document
-                    .getElementById("btn-toggle-cycle")
-                    .addEventListener("click", switchDayNightMode);
-                document
-                    .getElementById("btn-toggle-world")
-                    .addEventListener("click", switchWorldMode);
-                document
-                    .getElementById("btn-toggle-mode")
-                    .addEventListener("click", switchCheckpointMode);
-
-                updateMenuText();
-                updateEnvironment();
-
-                resetGameLogic(true);
-                animate();
-            }
-
-            function createStars() {
-                const geometry = new THREE.BufferGeometry();
-                const count = 15000;
-                const positions = new Float32Array(count * 3);
-                const sizes = new Float32Array(count);
-
-                for (let i = 0; i < count; i++) {
-                    const x = (Math.random() - 0.5) * 2000;
-                    const y = (Math.random() - 0.5) * 2000;
-                    const z = (Math.random() - 0.5) * 2000;
-                    positions[i * 3] = x;
-                    positions[i * 3 + 1] = y;
-                    positions[i * 3 + 2] = z;
-                    sizes[i] = Math.random() * 1.8;
-                }
-                geometry.setAttribute(
-                    "position",
-                    new THREE.BufferAttribute(positions, 3)
-                );
-                geometry.setAttribute(
-                    "size",
-                    new THREE.BufferAttribute(sizes, 1)
-                );
-
-                const material = new THREE.PointsMaterial({
-                    color: 0xffffff,
-                    size: 1.0,
-                    sizeAttenuation: true,
-                    transparent: true,
-                    opacity: 1.0,
-                });
-                stars = new THREE.Points(geometry, material);
-                scene.add(stars);
-            }
-
-            function setupPlanet() {
-                planetGroup = new THREE.Group();
-                const radius = 1600;
-                const earthGeo = new THREE.SphereGeometry(radius, 128, 128);
-                earth = new THREE.Mesh(earthGeo, earthMaterial);
-                earth.receiveShadow = false;
-                earth.rotation.z = Math.PI / 2;
-                planetGroup.add(earth);
-
-                const cloudGeo = new THREE.SphereGeometry(
-                    radius + 15,
-                    128,
-                    128
-                );
-                earthAtmosphere = new THREE.Mesh(cloudGeo, atmosphereMaterial);
-                earthAtmosphere.rotation.z = Math.PI / 2;
-                planetGroup.add(earthAtmosphere);
-
-                planetGroup.position.y = -radius - 60;
-                scene.add(planetGroup);
-            }
-
-            function setupJungle() {
-                jungleGroup = new THREE.Group();
-                const trunkGeo = new THREE.BoxGeometry(2, 60, 2);
-                const trunkMat = new THREE.MeshStandardMaterial({
-                    color: 0x3e2723,
-                });
-                instancedTrunks = new THREE.InstancedMesh(
-                    trunkGeo,
-                    trunkMat,
-                    TREE_COUNT
-                );
-                instancedTrunks.frustumCulled = false;
-
-                const leaveGeo = new THREE.BoxGeometry(8, 6, 8);
-                const leaveMat = new THREE.MeshStandardMaterial({
-                    color: 0x2e7d32,
-                });
-                instancedLeaves = new THREE.InstancedMesh(
-                    leaveGeo,
-                    leaveMat,
-                    TREE_COUNT
-                );
-                instancedLeaves.frustumCulled = false;
-
-                const dummy = new THREE.Object3D();
-                treeData = [];
-
-                for (let i = 0; i < TREE_COUNT; i++) {
-                    let x = Math.random() * 100 + 20;
+            for(let i=0; i<TREE_COUNT; i++) {
+                if (treeData[i].z > player.position.z + 50) {
+                    treeData[i].z = player.position.z - JUNGLE_RENDER_DIST - (Math.random() * 50);
+                    let x = (Math.random() * 120) + 20; 
                     if (Math.random() > 0.5) x = -x;
-                    let z = -(Math.random() * JUNGLE_RENDER_DIST);
-                    let y = -40 + Math.random() * 20;
-
-                    treeData.push({ x, y, z, scaleH: 1 + Math.random() * 0.5 });
-                    dummy.position.set(x, y, z);
-                    dummy.scale.set(1, treeData[i].scaleH, 1);
-                    dummy.updateMatrix();
-                    instancedTrunks.setMatrixAt(i, dummy.matrix);
-                    dummy.position.set(x, y + 30 * treeData[i].scaleH, z);
-                    dummy.scale.set(1, 1, 1);
-                    dummy.updateMatrix();
-                    instancedLeaves.setMatrixAt(i, dummy.matrix);
-                }
-                jungleGroup.add(instancedTrunks);
-                jungleGroup.add(instancedLeaves);
-                scene.add(jungleGroup);
-            }
-
-            function createCuteCloudMesh() {
-                const group = new THREE.Group();
-                const c1 = new THREE.Mesh(
-                    new THREE.BoxGeometry(4, 2, 3),
-                    cuteCloudMaterial
-                );
-                group.add(c1);
-                const c2 = new THREE.Mesh(
-                    new THREE.BoxGeometry(3, 2, 2),
-                    cuteCloudMaterial
-                );
-                c2.position.set(2.5, 0.5, 0);
-                group.add(c2);
-                const c3 = new THREE.Mesh(
-                    new THREE.BoxGeometry(3, 2, 2),
-                    cuteCloudMaterial
-                );
-                c3.position.set(-2.5, -0.5, 0.5);
-                group.add(c3);
-                return group;
-            }
-
-            function createCuteClouds() {
-                // Upper clouds above player
-                for (let i = 0; i < 30; i++) {
-                    const cloud = createCuteCloudMesh();
-                    cloud.userData.yBase = 20 + Math.random() * 20;
-                    cloud.position.set(
-                        (Math.random() - 0.5) * 300,
-                        cloud.userData.yBase,
-                        Math.random() * -400 + 50
-                    );
-                    scene.add(cloud);
-                    floatingClouds.push(cloud);
-                }
-                // Lower clouds below player
-                for (let i = 0; i < 30; i++) {
-                    const cloud = createCuteCloudMesh();
-                    cloud.userData.yBase = -15 - Math.random() * 10;
-                    cloud.position.set(
-                        (Math.random() - 0.5) * 300,
-                        cloud.userData.yBase,
-                        Math.random() * -400 + 50
-                    );
-                    scene.add(cloud);
-                    floatingClouds.push(cloud);
-                }
-            }
-
-            function updateFloatingClouds() {
-                // Clouds always visible now as requested
-                floatingClouds.forEach((c) => {
-                    c.visible = true;
-                    c.position.x += 0.03;
-                    c.position.z += 0.05;
-                    if (c.position.x > 250) c.position.x = -250;
-                    if (c.position.z > player.position.z + 100) {
-                        c.position.z =
-                            player.position.z - 400 - Math.random() * 100;
-                        c.position.x = (Math.random() - 0.5) * 400;
-                        c.position.y = c.userData.yBase;
-                    }
-                });
-            }
-
-            function respawnJungleAroundPlayer() {
-                const dummy = new THREE.Object3D();
-                for (let i = 0; i < TREE_COUNT; i++) {
-                    let x = Math.random() * 100 + 20;
-                    if (Math.random() > 0.5) x = -x;
-                    let z =
-                        player.position.z - Math.random() * JUNGLE_RENDER_DIST;
-                    let y = -40 + Math.random() * 20;
                     treeData[i].x = x;
-                    treeData[i].y = y;
-                    treeData[i].z = z;
-                    dummy.position.set(x, y, z);
+
+                    dummy.position.set(treeData[i].x, treeData[i].y, treeData[i].z);
                     dummy.scale.set(1, treeData[i].scaleH, 1);
                     dummy.updateMatrix();
                     instancedTrunks.setMatrixAt(i, dummy.matrix);
-                    dummy.position.set(x, y + 30 * treeData[i].scaleH, z);
+
+                    dummy.position.set(treeData[i].x, treeData[i].y + (30 * treeData[i].scaleH), treeData[i].z);
                     dummy.scale.set(1, 1, 1);
                     dummy.updateMatrix();
                     instancedLeaves.setMatrixAt(i, dummy.matrix);
+
+                    needsUpdate = true;
                 }
+            }
+
+            if (needsUpdate) {
                 instancedTrunks.instanceMatrix.needsUpdate = true;
                 instancedLeaves.instanceMatrix.needsUpdate = true;
             }
+        }
 
-            function updateJungleLogic() {
-                const dummy = new THREE.Object3D();
-                let needsUpdate = false;
-                for (let i = 0; i < TREE_COUNT; i++) {
-                    if (treeData[i].z > player.position.z + 50) {
-                        treeData[i].z =
-                            player.position.z -
-                            JUNGLE_RENDER_DIST -
-                            Math.random() * 50;
-                        let x = Math.random() * 120 + 20;
-                        if (Math.random() > 0.5) x = -x;
-                        treeData[i].x = x;
-                        dummy.position.set(
-                            treeData[i].x,
-                            treeData[i].y,
-                            treeData[i].z
-                        );
-                        dummy.scale.set(1, treeData[i].scaleH, 1);
-                        dummy.updateMatrix();
-                        instancedTrunks.setMatrixAt(i, dummy.matrix);
-                        dummy.position.set(
-                            treeData[i].x,
-                            treeData[i].y + 30 * treeData[i].scaleH,
-                            treeData[i].z
-                        );
-                        dummy.scale.set(1, 1, 1);
-                        dummy.updateMatrix();
-                        instancedLeaves.setMatrixAt(i, dummy.matrix);
-                        needsUpdate = true;
-                    }
-                }
-                if (needsUpdate) {
-                    instancedTrunks.instanceMatrix.needsUpdate = true;
-                    instancedLeaves.instanceMatrix.needsUpdate = true;
-                }
+        function updateShootingStars() {
+            if (Math.random() < 0.008) {
+                const geometry = new THREE.BufferGeometry();
+                const x = (Math.random() - 0.5) * 600;
+                const y = 100 + Math.random() * 200;
+                const z = player.position.z - 300 - Math.random()*200; 
+                const start = new THREE.Vector3(x, y, z);
+                const length = 50 + Math.random() * 50;
+                const end = new THREE.Vector3(x + (Math.random()-0.5)*length, y - Math.random()*length, z);
+                geometry.setFromPoints([start, end]);
+                const line = new THREE.Line(geometry, shootingStarMaterial.clone());
+                scene.add(line);
+                shootingStars.push({mesh: line, life: 1.0});
             }
 
-            function updateShootingStars() {
-                if (Math.random() < 0.008) {
-                    const geometry = new THREE.BufferGeometry();
-                    const x = (Math.random() - 0.5) * 600;
-                    const y = 100 + Math.random() * 200;
-                    const z = player.position.z - 300 - Math.random() * 200;
-                    const start = new THREE.Vector3(x, y, z);
-                    const length = 50 + Math.random() * 50;
-                    const end = new THREE.Vector3(
-                        x + (Math.random() - 0.5) * length,
-                        y - Math.random() * length,
-                        z
-                    );
-                    geometry.setFromPoints([start, end]);
-                    const line = new THREE.Line(
-                        geometry,
-                        shootingStarMaterial.clone()
-                    );
-                    scene.add(line);
-                    shootingStars.push({ mesh: line, life: 1.0 });
-                }
-                for (let i = shootingStars.length - 1; i >= 0; i--) {
-                    const s = shootingStars[i];
-                    s.life -= 0.02;
-                    s.mesh.position.x += 0.5;
-                    s.mesh.position.y -= 0.2;
-                    s.mesh.material.opacity = s.life;
-                    if (s.life <= 0) {
-                        scene.remove(s.mesh);
-                        s.mesh.geometry.dispose();
-                        shootingStars.splice(i, 1);
-                    }
+            for (let i = shootingStars.length - 1; i >= 0; i--) {
+                const s = shootingStars[i];
+                s.life -= 0.02;
+                s.mesh.position.x += 0.5; 
+                s.mesh.position.y -= 0.2;
+                s.mesh.material.opacity = s.life;
+                if (s.life <= 0) {
+                    scene.remove(s.mesh);
+                    s.mesh.geometry.dispose();
+                    shootingStars.splice(i, 1);
                 }
             }
+        }
 
-            function updateEnvironment() {
-                // Update global time counter regardless of state
-                globalTime += 1;
+        function updateEnvironment() {
+            // Update global time counter regardless of state
+            globalTime += 1;
 
-                // Update Dash UI
-                const now = Date.now();
-                const timeSinceDash = now - lastDashTime;
-                const dashBar = document.getElementById("dash-bar");
-                const dashText = document.getElementById("dash-text");
+            if (worldMode === 'VOID') {
+                scene.background = COLORS.void;
+                // Reduced fog for clear stars
+                scene.fog = new THREE.Fog(COLORS.void, 40, 300);
+                if(stars) stars.material.opacity = 1.0;
+                
+                planetGroup.visible = false;
+                jungleGroup.visible = false;
 
-                if (timeSinceDash >= DASH_COOLDOWN) {
-                    dashBar.style.width = "100%";
-                    dashBar.style.background = "#00ffff";
-                    dashBar.style.boxShadow = "0 0 10px #00ffff";
-                    dashText.innerText = "DASH READY (SHIFT)";
-                } else {
-                    const perc = (timeSinceDash / DASH_COOLDOWN) * 100;
-                    dashBar.style.width = perc + "%";
-                    dashBar.style.background = "#555";
-                    dashBar.style.boxShadow = "none";
-                    dashText.innerText = "COOLDOWN";
-                }
+                ambientLight.intensity = 0.3;
+                dirLight.intensity = 0.6;
 
-                if (worldMode === "VOID") {
-                    scene.background = COLORS.void;
-                    scene.fog = new THREE.Fog(COLORS.void, 40, 300);
-                    if (stars) stars.material.opacity = 1.0;
-                    planetGroup.visible = false;
-                    jungleGroup.visible = false;
+            } else {
+                if (isPermanentNight) {
+                    scene.background = COLORS.night;
+                    scene.fog = new THREE.Fog(COLORS.night, 60, 450); 
                     ambientLight.intensity = 0.3;
                     dirLight.intensity = 0.6;
+                    if(stars) stars.material.opacity = 0.8; 
                 } else {
-                    if (isPermanentNight) {
-                        scene.background = COLORS.night;
-                        scene.fog = new THREE.Fog(COLORS.night, 60, 450);
-                        ambientLight.intensity = 0.3;
-                        dirLight.intensity = 0.6;
-                        if (stars) stars.material.opacity = 0.8;
-                    } else {
-                        const cycleLength = 7200;
-                        const t = (globalTime % cycleLength) / cycleLength;
-                        let targetColor = new THREE.Color();
-                        let starOpacity = 0;
-                        let lightIntensity = 0.9;
-                        if (t < 0.25) {
-                            const alpha = t / 0.25;
-                            targetColor.lerpColors(
-                                COLORS.morning,
-                                COLORS.noon,
-                                alpha
-                            );
-                            lightIntensity = 0.8 + alpha * 0.2;
-                        } else if (t < 0.5) {
-                            const alpha = (t - 0.25) / 0.25;
-                            targetColor.lerpColors(
-                                COLORS.noon,
-                                COLORS.sunset,
-                                alpha
-                            );
-                            lightIntensity = 1.0 - alpha * 0.3;
-                        } else if (t < 0.75) {
-                            const alpha = (t - 0.5) / 0.25;
-                            targetColor.lerpColors(
-                                COLORS.sunset,
-                                COLORS.night,
-                                alpha
-                            );
-                            starOpacity = alpha;
-                            lightIntensity = 0.7 - alpha * 0.5;
-                        } else {
-                            const alpha = (t - 0.75) / 0.25;
-                            targetColor.lerpColors(
-                                COLORS.night,
-                                COLORS.morning,
-                                alpha
-                            );
-                            starOpacity = 1.0 - alpha;
-                            lightIntensity = 0.2 + alpha * 0.6;
-                        }
-                        scene.background.copy(targetColor);
-                        scene.fog.color.copy(targetColor);
-                        ambientLight.intensity = Math.max(
-                            0.2,
-                            lightIntensity - 0.2
-                        );
-                        dirLight.intensity = lightIntensity;
-                        if (stars) stars.material.opacity = starOpacity;
+                    // Cycle speed (60s for full day approx @ 60fps = 3600 frames)
+                    const cycleLength = 3600; 
+                    const t = (globalTime % cycleLength) / cycleLength; 
+                    
+                    let targetColor = new THREE.Color();
+                    let starOpacity = 0;
+                    let lightIntensity = 0.9;
+
+                    if (t < 0.25) { 
+                        const alpha = t / 0.25;
+                        targetColor.lerpColors(COLORS.morning, COLORS.noon, alpha);
+                        lightIntensity = 0.8 + (alpha * 0.2);
+                    } else if (t < 0.50) { 
+                        const alpha = (t - 0.25) / 0.25;
+                        targetColor.lerpColors(COLORS.noon, COLORS.sunset, alpha);
+                        lightIntensity = 1.0 - (alpha * 0.3);
+                    } else if (t < 0.75) { 
+                        const alpha = (t - 0.50) / 0.25;
+                        targetColor.lerpColors(COLORS.sunset, COLORS.night, alpha);
+                        starOpacity = alpha;
+                        lightIntensity = 0.7 - (alpha * 0.5);
+                    } else { 
+                        const alpha = (t - 0.75) / 0.25;
+                        targetColor.lerpColors(COLORS.night, COLORS.morning, alpha);
+                        starOpacity = 1.0 - alpha;
+                        lightIntensity = 0.2 + (alpha * 0.6);
                     }
-                    planetGroup.visible = worldMode === "PLANET";
-                    jungleGroup.visible = worldMode === "JUNGLE";
-                }
-            }
-
-            function triggerDash() {
-                const now = Date.now();
-                if (now - lastDashTime >= DASH_COOLDOWN) {
-                    lastDashTime = now;
-                    dashFrames = DASH_DURATION;
-
-                    // Visual Trail Effect
-                    const trail = new THREE.Mesh(
-                        player.geometry,
-                        trailMaterial
-                    );
-                    trail.position.copy(player.position);
-                    trail.scale.copy(player.scale);
-                    trail.userData.life = 1.0;
-                    scene.add(trail);
-                    trails.push(trail);
-                }
-            }
-
-            function updateTrails() {
-                for (let i = trails.length - 1; i >= 0; i--) {
-                    const t = trails[i];
-                    t.userData.life -= 0.05;
-                    t.material.opacity = t.userData.life * 0.4;
-                    t.position.z += 0.2; // Drift back
-                    if (t.userData.life <= 0) {
-                        scene.remove(t);
-                        trails.splice(i, 1);
-                    }
-                }
-            }
-
-            function updateCamera() {
-                if (stars) stars.position.copy(player.position);
-                updateFloatingClouds();
-
-                if (worldMode === "VOID") {
-                    updateShootingStars();
-                } else if (worldMode === "PLANET") {
-                    planetGroup.position.x = player.position.x;
-                    planetGroup.position.z = player.position.z;
-                    const radius = 1600;
-                    const angularSpeed = currentTotalSpeed / radius;
-                    planetGroup.rotation.x += angularSpeed;
-                    earthAtmosphere.rotation.x += angularSpeed * 0.85;
-                    earthAtmosphere.rotation.y += 0.0001;
-                } else if (worldMode === "JUNGLE") {
-                    updateJungleLogic();
+                    scene.background.copy(targetColor);
+                    scene.fog.color.copy(targetColor);
+                    ambientLight.intensity = Math.max(0.2, lightIntensity - 0.2);
+                    dirLight.intensity = lightIntensity;
+                    if(stars) stars.material.opacity = starOpacity;
                 }
 
-                if (cameraMode === "TPS") {
-                    const targetX = player.position.x * 0.7;
-                    camera.position.x += (targetX - camera.position.x) * 0.1;
-                    const speedOffset =
-                        (currentTotalSpeed - START_TOTAL_SPEED) * 40;
-                    camera.position.z = player.position.z + 11 + speedOffset;
-                    camera.position.y =
-                        player.position.y + 6 + speedOffset * 0.4;
-                    camera.lookAt(
-                        player.position.x,
-                        player.position.y,
-                        player.position.z - 10
-                    );
-                } else {
-                    camera.position.x = player.position.x;
-                    camera.position.z = player.position.z;
-                    camera.position.y = player.position.y + 0.4;
-                    camera.lookAt(
-                        player.position.x,
-                        player.position.y - 2.0,
-                        player.position.z - 10.0
-                    );
-                }
+                planetGroup.visible = (worldMode === 'PLANET');
+                jungleGroup.visible = (worldMode === 'JUNGLE');
+            }
+        }
+
+        function updateCamera() {
+            if (stars) stars.position.copy(player.position);
+            
+            updateFloatingClouds();
+
+            if (worldMode === 'VOID') {
+                updateShootingStars();
+            } else if (worldMode === 'PLANET') {
+                planetGroup.position.x = player.position.x;
+                planetGroup.position.z = player.position.z;
+                const radius = 1600;
+                const angularSpeed = currentTotalSpeed / radius;
+                planetGroup.rotation.x += angularSpeed; 
+            } else if (worldMode === 'JUNGLE') {
+                updateJungleLogic();
             }
 
-            // --- UI & Controls ---
-            function switchCameraMode() {
-                cameraMode = cameraMode === "FPS" ? "TPS" : "FPS";
-                localStorage.setItem("infiniteJumper_cameraMode", cameraMode);
-                if (player.material) {
-                    player.material.forEach(
-                        (m) => (m.opacity = cameraMode === "FPS" ? 0.0 : 1.0)
-                    );
-                }
-                updateMenuText();
+            if (cameraMode === 'TPS') {
+                const targetX = player.position.x * 0.7;
+                camera.position.x += (targetX - camera.position.x) * 0.1;
+                const speedOffset = (currentTotalSpeed - START_TOTAL_SPEED) * 40;
+                camera.position.z = player.position.z + 11 + speedOffset; 
+                camera.position.y = player.position.y + 6 + (speedOffset * 0.4);
+                camera.lookAt(player.position.x, player.position.y, player.position.z - 10);
+            } else {
+                camera.position.x = player.position.x;
+                camera.position.z = player.position.z;
+                camera.position.y = player.position.y + 0.4; 
+                camera.lookAt(player.position.x, player.position.y - 2.0, player.position.z - 10.0);
+            }
+        }
+
+        // --- UI & Controls ---
+        function switchCameraMode() {
+            cameraMode = (cameraMode === 'FPS') ? 'TPS' : 'FPS';
+            localStorage.setItem('infiniteJumper_cameraMode', cameraMode);
+            if(player.material) {
+                 player.material.forEach(m => m.opacity = (cameraMode === 'FPS' ? 0.0 : 1.0));
+            }
+            updateMenuText();
+        }
+
+        function switchDayNightMode() {
+            isPermanentNight = !isPermanentNight;
+            localStorage.setItem('infiniteJumper_nightMode', isPermanentNight);
+            updateMenuText();
+            // Don't call updateEnvironment here, let animate loop handle it naturally
+        }
+
+        function switchWorldMode() {
+            if (worldMode === 'VOID') worldMode = 'PLANET';
+            else if (worldMode === 'PLANET') worldMode = 'JUNGLE';
+            else worldMode = 'VOID';
+            
+            localStorage.setItem('infiniteJumper_worldMode', worldMode);
+            
+            if (worldMode === 'JUNGLE') {
+                respawnJungleAroundPlayer();
             }
 
-            function switchDayNightMode() {
-                isPermanentNight = !isPermanentNight;
-                localStorage.setItem(
-                    "infiniteJumper_nightMode",
-                    isPermanentNight
-                );
-                updateMenuText();
-                updateEnvironment();
+            updateMenuText();
+        }
+
+        function updateMenuText() {
+            document.getElementById('btn-toggle-view').innerText = (cameraMode === 'FPS') ? "VIEW: FIRST PERSON" : "VIEW: THIRD PERSON";
+            document.getElementById('btn-toggle-cycle').innerText = isPermanentNight ? "CYCLE: PERMANENT NIGHT" : "CYCLE: DAY/NIGHT";
+            document.getElementById('btn-toggle-world').innerText = "WORLD: " + worldMode;
+        }
+
+        function togglePause() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pause-menu').style.display = 'block';
+            } else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pause-menu').style.display = 'none';
+            }
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score').innerText = score;
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-over-screen').style.display = 'block';
+        }
+
+        function resetGameLogic() {
+            score = 0;
+            currentTotalSpeed = START_TOTAL_SPEED;
+            // Note: We do NOT reset globalTime, so cycle persists
+            
+            updateScoreUI();
+
+            player.position.set(0, 2, 0);
+            playerVelocityY = 0; 
+            
+            platforms.forEach(p => scene.remove(p));
+            platforms = [];
+
+            lastRowZ = 0;
+            lastRowX = 0;
+            generatedRowsCount = 0;
+
+            spawnPlatform(0, 0);
+
+            for(let i = 1; i < 30; i++) {
+                spawnNextRow();
+            }
+            
+            if(worldMode === 'JUNGLE') respawnJungleAroundPlayer();
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('pause-menu').style.display = 'none';
+            resetGameLogic();
+            playerVelocityY = JUMP_FORCE; 
+            gameState = 'PLAYING';
+        }
+
+        function spawnPlatform(x, z) {
+            const geometry = new THREE.BoxGeometry(PLATFORM_WIDTH, PLATFORM_HEIGHT, PLATFORM_DEPTH);
+            const mesh = new THREE.Mesh(geometry, platformMaterials);
+            mesh.position.set(x, -PLATFORM_HEIGHT/2, z);
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            platforms.push(mesh);
+        }
+
+        function spawnNextRow() {
+            generatedRowsCount++;
+            const airTime = (2 * JUMP_FORCE) / GRAVITY;
+
+            const MIN_SHIFT = 3.5;
+            const MAX_SHIFT = 6.5;
+
+            let shiftMagnitude = MIN_SHIFT + (Math.random() * (MAX_SHIFT - MIN_SHIFT));
+            let direction = 0;
+            if (lastRowX > 3) direction = -1;
+            else if (lastRowX < -3) direction = 1;
+            else direction = Math.random() > 0.5 ? 1 : -1;
+
+            let drift = shiftMagnitude * direction;
+            let centerX = lastRowX + drift;
+            if (centerX > 9) centerX = 9;
+            if (centerX < -9) centerX = -9;
+            lastRowX = centerX;
+
+            let totalJumpCapacity = currentTotalSpeed * airTime;
+            let actualShift = Math.abs(drift); 
+            let safeCapacity = totalJumpCapacity * 0.92;
+
+            let forwardDist = 0;
+            if (safeCapacity > actualShift) {
+                forwardDist = Math.sqrt(Math.pow(safeCapacity, 2) - Math.pow(actualShift, 2));
+            } else {
+                forwardDist = totalJumpCapacity * 0.4; 
             }
 
-            function switchWorldMode() {
-                if (worldMode === "VOID") worldMode = "PLANET";
-                else if (worldMode === "PLANET") worldMode = "JUNGLE";
-                else worldMode = "VOID";
-                localStorage.setItem("infiniteJumper_worldMode", worldMode);
-                if (worldMode === "JUNGLE") respawnJungleAroundPlayer();
-                updateMenuText();
-                updateEnvironment();
+            const newZ = lastRowZ - forwardDist;
+            lastRowZ = newZ;
+
+            let platformCount = 1;
+            const rand = Math.random();
+            if (generatedRowsCount < 5) {
+                platformCount = 1;
+                lastRowX = 0; 
+                centerX = 0;
+            } else {
+                if (rand > 0.8) platformCount = 2; 
             }
 
-            function switchCheckpointMode() {
-                isCheckpointMode = !isCheckpointMode;
-                localStorage.setItem(
-                    "infiniteJumper_checkpointMode",
-                    isCheckpointMode
-                );
-                updateMenuText();
-            }
-
-            function updateMenuText() {
-                document.getElementById("btn-toggle-view").innerText =
-                    cameraMode === "FPS"
-                        ? "VIEW: FIRST PERSON"
-                        : "VIEW: THIRD PERSON";
-                document.getElementById("btn-toggle-cycle").innerText =
-                    isPermanentNight
-                        ? "CYCLE: PERMANENT NIGHT"
-                        : "CYCLE: DAY/NIGHT";
-                document.getElementById("btn-toggle-world").innerText =
-                    "WORLD: " + worldMode;
-                document.getElementById("btn-toggle-mode").innerText =
-                    isCheckpointMode ? "MODE: CHECKPOINTS" : "MODE: HARDCORE";
-            }
-
-            function togglePause() {
-                if (gameState === "PLAYING") {
-                    gameState = "PAUSED";
-                    document.getElementById("pause-menu").style.display =
-                        "block";
-                } else if (gameState === "PAUSED") {
-                    gameState = "PLAYING";
-                    document.getElementById("pause-menu").style.display =
-                        "none";
-                }
-            }
-
-            function updateScoreUI() {
-                document.getElementById("score").innerText = score;
-            }
-
-            function triggerGameOver() {
-                gameState = "GAMEOVER";
-                document.getElementById("final-score").innerText = score;
-
-                const restartPoint = isCheckpointMode ? lastCheckpoint : 0;
-                document.getElementById("checkpoint-score").innerText =
-                    restartPoint;
-                document.getElementById("game-over-screen").style.display =
-                    "block";
-            }
-
-            function resetGameLogic(fullReset = false) {
-                if (fullReset || !isCheckpointMode) {
-                    score = 0;
-                    lastCheckpoint = 0;
-                    currentTotalSpeed = START_TOTAL_SPEED;
-                    generatedRowsCount = 0;
-                } else {
-                    if (lastCheckpoint > 0) {
-                        score = lastCheckpoint;
-                        const tier = Math.floor(
-                            score / SPEED_INCREMENT_INTERVAL
-                        );
-                        currentTotalSpeed =
-                            START_TOTAL_SPEED *
-                            Math.pow(SPEED_MULTIPLIER, tier);
-                        generatedRowsCount = score;
-                    } else {
-                        score = 0;
-                        currentTotalSpeed = START_TOTAL_SPEED;
-                        generatedRowsCount = 0;
-                    }
-                }
-
-                // Reset physics to normal (no high jump logic)
-                currentJumpForce = BASE_JUMP_FORCE;
-
-                updateScoreUI();
-
-                player.position.set(0, 2, 0);
-                playerVelocityY = 0;
-
-                platforms.forEach((p) => {
-                    scene.remove(p);
-                    if (p.userData.decorations) {
-                        p.userData.decorations.forEach((d) => scene.remove(d));
-                    }
-                });
-                platforms = [];
-
-                lastRowZ = 0;
-                lastRowX = 0;
-
-                if (
-                    lastCheckpoint > 0 &&
-                    lastCheckpoint % SPEED_INCREMENT_INTERVAL === 0
-                ) {
-                    spawnPortal(0, 0);
-                } else {
-                    spawnPlatform(0, 0);
-                }
-
-                for (let i = 1; i < 30; i++) {
-                    spawnNextRow();
-                }
-
-                if (worldMode === "JUNGLE") respawnJungleAroundPlayer();
-                updateEnvironment();
-            }
-
-            function startGame() {
-                document.getElementById("start-screen").style.display = "none";
-                document.getElementById("game-over-screen").style.display =
-                    "none";
-                document.getElementById("pause-menu").style.display = "none";
-
-                resetGameLogic(false);
-
-                playerVelocityY = BASE_JUMP_FORCE;
-                gameState = "PLAYING";
-            }
-
-            function spawnPortal(x, z) {
-                const floorGeo = new THREE.BoxGeometry(8, 1, 4);
-                const floor = new THREE.Mesh(floorGeo, stoneMaterials);
-                floor.position.set(x, -0.5, z);
-                floor.receiveShadow = true;
-                scene.add(floor);
-                platforms.push(floor);
-                floor.userData.decorations = [];
-
-                const pillarGeo = new THREE.BoxGeometry(1.5, 10, 1.5);
-                const left = new THREE.Mesh(pillarGeo, stoneMaterials);
-                left.position.set(x - 3.25, 4.5, z);
-                left.castShadow = true;
-                scene.add(left);
-                floor.userData.decorations.push(left);
-
-                const right = new THREE.Mesh(pillarGeo, stoneMaterials);
-                right.position.set(x + 3.25, 4.5, z);
-                right.castShadow = true;
-                scene.add(right);
-                floor.userData.decorations.push(right);
-
-                const topGeo = new THREE.BoxGeometry(8, 1.5, 1.5);
-                const top = new THREE.Mesh(topGeo, stoneMaterials);
-                top.position.set(x, 9, z);
-                top.castShadow = true;
-                scene.add(top);
-                floor.userData.decorations.push(top);
-
-                const glowGeo = new THREE.PlaneGeometry(6, 9);
-                const glow = new THREE.Mesh(glowGeo, portalGlowMaterial);
-                glow.position.set(x, 4.5, z);
-                scene.add(glow);
-                floor.userData.decorations.push(glow);
-            }
-
-            function spawnPlatform(x, z) {
-                const geometry = new THREE.BoxGeometry(
-                    PLATFORM_WIDTH,
-                    PLATFORM_HEIGHT,
-                    PLATFORM_DEPTH
-                );
-                const mesh = new THREE.Mesh(geometry, platformMaterials);
-                mesh.position.set(x, -PLATFORM_HEIGHT / 2, z);
-                mesh.receiveShadow = true;
-                scene.add(mesh);
-                platforms.push(mesh);
-            }
-
-            function spawnNextRow() {
-                generatedRowsCount++;
-
-                const airTime = (2 * currentJumpForce) / GRAVITY;
-
-                const tier = Math.floor(
-                    generatedRowsCount / SPEED_INCREMENT_INTERVAL
-                );
-
-                const baseMinShift = 3.5;
-                const baseMaxShift = 6.5;
-                const driftMultiplier = 1.0 + tier * 0.1;
-
-                let shiftMagnitude =
-                    baseMinShift * driftMultiplier +
-                    Math.random() *
-                        (baseMaxShift - baseMinShift) *
-                        driftMultiplier;
-                let direction = 0;
-                let limit = 9 + tier;
-
-                if (lastRowX > 4 + tier) direction = -1;
-                else if (lastRowX < -(4 + tier)) direction = 1;
-                else direction = Math.random() > 0.5 ? 1 : -1;
-
-                let drift = shiftMagnitude * direction;
-                let centerX = lastRowX + drift;
-
-                if (centerX > limit) centerX = limit;
-                if (centerX < -limit) centerX = -limit;
-
-                lastRowX = centerX;
-
-                // Distance Calculation
-                let totalJumpCapacity = currentTotalSpeed * airTime;
-                // Base Gap
-                let distFactor = 0.92;
-                // If speed is high, reduce factor to allow skipping
-                // Since speed multiplier is 1.5, this grows fast.
-                if (tier > 0) distFactor = 0.6;
-
-                let safeCapacity = totalJumpCapacity * distFactor;
-                let actualShift = Math.abs(drift);
-                let forwardDist = 0;
-
-                if (safeCapacity > actualShift) {
-                    forwardDist = Math.sqrt(
-                        Math.pow(safeCapacity, 2) - Math.pow(actualShift, 2)
-                    );
-                } else {
-                    forwardDist = totalJumpCapacity * 0.4;
-                }
-
-                const newZ = lastRowZ - forwardDist;
-                lastRowZ = newZ;
-
-                if (generatedRowsCount % SPEED_INCREMENT_INTERVAL === 0) {
-                    spawnPortal(centerX, newZ);
-                    lastRowX = centerX;
-                    return;
-                }
-
-                let rowItems = [{ x: centerX, z: newZ }];
+            const spacing = 8.0; 
+            if (platformCount === 1) {
                 spawnPlatform(centerX, newZ);
+            } 
+            else if (platformCount === 2) {
+                spawnPlatform(centerX - spacing/2, newZ);
+                spawnPlatform(centerX + spacing/2, newZ);
+            } 
+        }
 
-                if (tier > 0) {
-                    if (Math.random() < 0.4 + tier * 0.1) {
-                        let extraX = centerX + (Math.random() - 0.5) * 10;
-                        let extraZ = newZ + (Math.random() - 0.5) * 6;
-                        let collision = false;
-                        for (let item of rowItems) {
-                            let dist = Math.sqrt(
-                                Math.pow(extraX - item.x, 2) +
-                                    Math.pow(extraZ - item.z, 2)
-                            );
-                            if (dist < 5.0) collision = true;
-                        }
-                        if (!collision) {
-                            spawnPlatform(extraX, extraZ);
-                            rowItems.push({ x: extraX, z: extraZ });
-                        }
+        function updatePhysics() {
+            let vx = 0;
+            if(moveLeft) vx -= STEERING_POWER;
+            if(moveRight) vx += STEERING_POWER;
+
+            let forwardBudgetSq = (currentTotalSpeed**2) - (vx**2);
+            if (forwardBudgetSq < 0) forwardBudgetSq = 0;
+            let vz = Math.sqrt(forwardBudgetSq);
+
+            player.position.x += vx;
+            player.position.z -= vz; 
+
+            playerVelocityY -= GRAVITY;
+            player.position.y += playerVelocityY;
+
+            if (playerVelocityY < 0 && player.position.y < PLAYER_SIZE/2) {
+                let landed = false;
+                for(let plat of platforms) {
+                    if (Math.abs(player.position.z - plat.position.z) > 4) continue;
+                    const zDist = Math.abs(player.position.z - plat.position.z);
+                    const xDist = Math.abs(player.position.x - plat.position.x);
+                    const zHit = zDist < (PLATFORM_DEPTH/2 + PLAYER_SIZE/2 + 0.4); 
+                    const xHit = xDist < (PLATFORM_WIDTH/2 + PLAYER_SIZE/2 - 0.2);
+                    if(zHit && xHit) {
+                        landed = true;
+                        break;
                     }
+                }
+                if (landed) {
+                    playerVelocityY = JUMP_FORCE;
+                    player.position.y = PLAYER_SIZE/2;
+                    score++;
+                    checkSpeedUp();
+                    checkMilestone();
+                    updateScoreUI();
                 }
             }
 
-            function updatePhysics() {
-                let vx = 0;
-                if (moveLeft) vx -= STEERING_POWER;
-                if (moveRight) vx += STEERING_POWER;
+            if (player.position.y < -10) {
+                triggerGameOver();
+            }
 
-                let forwardBudgetSq = currentTotalSpeed ** 2 - vx ** 2;
-                if (forwardBudgetSq < 0) forwardBudgetSq = 0;
-                let vz = Math.sqrt(forwardBudgetSq);
-
-                // Dash Logic: Add burst to vz
-                if (dashFrames > 0) {
-                    vz += DASH_SPEED_BOOST;
-                    dashFrames--;
-                }
-
-                player.position.x += vx;
-                player.position.z -= vz;
-
-                playerVelocityY -= GRAVITY;
-                player.position.y += playerVelocityY;
-
-                if (
-                    playerVelocityY < 0 &&
-                    player.position.y < PLAYER_SIZE / 2
-                ) {
-                    let landed = false;
-                    let landedPortal = false;
-
-                    for (let plat of platforms) {
-                        const width = plat.geometry.parameters.width;
-                        const depth = plat.geometry.parameters.depth;
-                        const zDist = Math.abs(
-                            player.position.z - plat.position.z
-                        );
-                        const xDist = Math.abs(
-                            player.position.x - plat.position.x
-                        );
-                        const zHit = zDist < depth / 2 + PLAYER_SIZE / 2 + 0.4;
-                        const xHit = xDist < width / 2 + PLAYER_SIZE / 2 - 0.2;
-
-                        if (zHit && xHit) {
-                            landed = true;
-                            if (width > 5) landedPortal = true;
-                            break;
-                        }
-                    }
-                    if (landed) {
-                        playerVelocityY = currentJumpForce;
-                        player.position.y = PLAYER_SIZE / 2;
-                        score++;
-
-                        if (landedPortal) {
-                            lastCheckpoint = score;
-                            checkMilestone();
-                            currentTotalSpeed *= SPEED_MULTIPLIER;
-                            const indicator =
-                                document.getElementById("speed-indicator");
-                            indicator.innerText = "SPEED UP +50%";
-                            indicator.style.opacity = 1;
-                            setTimeout(() => {
-                                indicator.style.opacity = 0;
-                            }, 2000);
-                        }
-
-                        updateScoreUI();
-                    }
-                }
-
-                if (player.position.y < -10) {
-                    triggerGameOver();
-                }
-
-                if (platforms.length > 0) {
-                    if (platforms[0].position.z > player.position.z + 25) {
-                        const p = platforms[0];
-                        scene.remove(p);
-                        if (p.userData.decorations) {
-                            p.userData.decorations.forEach((d) =>
-                                scene.remove(d)
-                            );
-                        }
-                        platforms.shift();
-                    }
-                }
-
-                if (lastRowZ > player.position.z - 120) {
-                    spawnNextRow();
+            if(platforms.length > 0) {
+                if(platforms[0].position.z > player.position.z + 25) {
+                    scene.remove(platforms[0]);
+                    platforms.shift();
                 }
             }
 
-            function checkMilestone() {
-                const el = document.getElementById("milestone-indicator");
-                el.innerText = "CHECKPOINT!";
-                el.classList.add("milestone-active");
+            if (lastRowZ > player.position.z - 120) {
+                spawnNextRow();
+            }
+        }
+
+        function checkSpeedUp() {
+            if(score > 0 && score % SPEED_INCREMENT_INTERVAL === 0) {
+                currentTotalSpeed *= SPEED_MULTIPLIER;
+                const indicator = document.getElementById('speed-indicator');
+                indicator.style.opacity = 1;
+                setTimeout(() => { indicator.style.opacity = 0; }, 2000);
+            }
+        }
+
+        function checkMilestone() {
+            if (score > 0 && score % 100 === 0) {
+                const el = document.getElementById('milestone-indicator');
+                el.innerText = score + " JUMPS!";
+                el.classList.add('milestone-active');
                 setTimeout(() => {
-                    el.classList.remove("milestone-active");
+                    el.classList.remove('milestone-active');
                 }, 2000);
             }
+        }
 
-            function animate() {
-                animationId = requestAnimationFrame(animate);
-                updateEnvironment();
-                renderer.render(scene, camera);
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Always update environment visuals (Clouds, Day/Night) even if paused
+            updateEnvironment();
+            // Render always
+            renderer.render(scene, camera);
 
-                if (gameState === "PLAYING") {
-                    updatePhysics();
-                    updateCamera();
-                    updateTrails();
-                } else {
-                    updateFloatingClouds();
-                }
+            if(gameState === 'PLAYING') {
+                updatePhysics();
+                updateCamera();
+            } else {
+                // Slight ambient motion when paused/menu for juice
+                updateFloatingClouds();
             }
+        }
 
-            function onKeyDown(event) {
-                if (event.code === "Escape") {
-                    if (gameState === "PLAYING" || gameState === "PAUSED")
-                        togglePause();
+        function onKeyDown(event) {
+            if(event.code === 'Escape') {
+                if (gameState === 'PLAYING' || gameState === 'PAUSED') togglePause();
+                return;
+            }
+            if(event.code === 'KeyV') {
+                switchCameraMode();
+                return;
+            }
+            if(event.code === 'Space') {
+                if(gameState === 'START' || gameState === 'GAMEOVER') {
+                    startGame();
                     return;
                 }
-                if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
-                    if (gameState === "PLAYING") triggerDash();
-                    return;
-                }
-                if (event.code === "KeyV") {
-                    switchCameraMode();
-                    return;
-                }
-                if (event.code === "Space") {
-                    if (gameState === "START" || gameState === "GAMEOVER") {
-                        startGame();
-                        return;
-                    }
-                }
-                switch (event.code) {
-                    case "ArrowLeft":
-                    case "KeyA":
-                        moveLeft = true;
-                        break;
-                    case "ArrowRight":
-                    case "KeyD":
-                        moveRight = true;
-                        break;
-                }
             }
-
-            function onKeyUp(event) {
-                switch (event.code) {
-                    case "ArrowLeft":
-                    case "KeyA":
-                        moveLeft = false;
-                        break;
-                    case "ArrowRight":
-                    case "KeyD":
-                        moveRight = false;
-                        break;
-                }
+            switch(event.code) {
+                case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
+                case 'ArrowRight': case 'KeyD': moveRight = true; break;
             }
+        }
 
-            function onWindowResize() {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+        function onKeyUp(event) {
+            switch(event.code) {
+                case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
+                case 'ArrowRight': case 'KeyD': moveRight = false; break;
             }
+        }
 
-            init();
-        </script>
-    </body>
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        init();
+
+    </script>
+</body>
 </html>
